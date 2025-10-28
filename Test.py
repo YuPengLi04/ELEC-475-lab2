@@ -218,7 +218,7 @@ def evaluate(model, loader, device, return_errors=False):
 
 def parse_args():
     ap = argparse.ArgumentParser()
-    ap.add_argument("-c", "--ckpt", type=str, default="non-aug_snoutnet_best.pth")
+    ap.add_argument("-c", "--ckpt", type=str, default="aug_SnoutNet.pth")
     ap.add_argument("--data_root", type=str, default="data/oxford-iiit-pet-noses")
     ap.add_argument("--img_size", type=int, default=227)
     ap.add_argument("--batch_size", type=int, default=64)
@@ -269,6 +269,83 @@ def main():
     stats = evaluate(model, test_loader, device)
     print(f"Euclidean px error → mean={stats['mean']:.2f}, "
           f"std={stats['std']:.2f}, min={stats['min']:.2f}, max={stats['max']:.2f}")
+    
+    # ===== Optional Ensemble evaluation (non-invasive) =========================
+    # Only runs if you pass --ensemble "<backbone:ckpt,...>"
+    ens_specs = _parse_ensemble_arg(getattr(args, "ensemble", ""))
+    if ens_specs:
+        print("\n[Ensemble] Building members:", ens_specs)
+        ens_models = []
+        for backbone, ck in ens_specs:
+            m = _build_model_by_name(backbone).to(device).float().eval()
+            _load_state_safely(m, ck, device)
+            ens_models.append(m)
+
+        # Resolve weights
+        w_str = getattr(args, "ens_weights", "").strip().lower()
+        if w_str == "auto":
+            # Learn non-negative weights on a small held-out split from TRAIN
+            # (no data augmentation; this is a tiny convex fit of 2–3 scalars)
+            ens_w = _optimize_ens_weights(ens_models, device, args)
+        elif w_str:
+            # User-specified numeric weights, e.g. "1,1,2"
+            parts = [float(x) for x in w_str.split(",") if x.strip()]
+            if len(parts) != len(ens_models):
+                raise ValueError(f"--ens-weights length {len(parts)} != #models {len(ens_models)}")
+            ens_w = torch.tensor(parts, device=device, dtype=torch.float32)
+        else:
+            # Equal weights
+            ens_w = torch.ones(len(ens_models), device=device, dtype=torch.float32)
+
+        # Evaluate ensemble on the SAME test loader
+        def evaluate_ensemble(models, weights, loader, device):
+            all_err = []
+            with torch.no_grad():
+                for imgs, uv in loader:
+                    imgs = imgs.to(device).float()
+                    uv   = uv.to(device).float()
+                    preds = _ensemble_predict(models, weights, imgs)  # [B,2]
+                    diff = preds - uv
+                    e = torch.sqrt((diff**2).sum(dim=1))
+                    all_err.append(e.cpu())
+            err = torch.cat(all_err)
+            return {
+                "mean": err.mean().item(),
+                "std":  err.std(unbiased=False).item(),
+                "min":  err.min().item(),
+                "max":  err.max().item(),
+            }
+
+        ens_stats = evaluate_ensemble(ens_models, ens_w, test_loader, device)
+        print(f"[Ensemble] weights (normalized): "
+              f"{[round(float(x), 4) for x in (ens_w/ens_w.sum()).tolist()]}")
+        print(f"[Ensemble] Euclidean px error → "
+              f"mean={ens_stats['mean']:.2f}, std={ens_stats['std']:.2f}, "
+              f"min={ens_stats['min']:.2f}, max={ens_stats['max']:.2f}")
+
+        # Optional: visualize ensemble predictions too (reuses your existing viz toggle)
+        if args.viz:
+            saved = 0
+            with torch.no_grad():
+                for imgs, uv in test_loader:
+                    imgs = imgs.to(device).float()
+                    preds = _ensemble_predict(ens_models, ens_w, imgs)
+                    for i in range(min(args.viz_count - saved, imgs.size(0))):
+                        visualize_prediction(
+                            img=imgs[i],
+                            pred_uv=preds[i],
+                            gt_uv=uv[i],
+                            save_path=os.path.join(args.viz_dir, f"viz_ens_{saved:04d}.png"),
+                            title=f"ENS pred={preds[i].tolist()}  gt={uv[i].tolist()}"
+                        )
+                        saved += 1
+                        if saved >= args.viz_count:
+                            break
+                    if saved >= args.viz_count:
+                        break
+            print(f"[Ensemble] saved {saved} visualization(s) to {args.viz_dir}")
+    # ===========================================================================
+
 
     # --- OPTIONAL: save visualizations (keeps your original code intact) ---
     if args.viz:
