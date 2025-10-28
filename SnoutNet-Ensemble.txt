@@ -1,0 +1,1 @@
+python Test.py --ensemble "snoutnet:snoutnet_best.pth,alexnet:alexA.pth" --ens-weights auto --viz --viz-count 5 --viz-dir ./viz_out
