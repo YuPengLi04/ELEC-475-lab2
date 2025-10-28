@@ -1,7 +1,7 @@
-python Train.py -e 50 -b 64 -s SnoutNet-V.pth -p SnoutNet-V_plot.png -t 1 --backbone vgg16
+python Train.py -e 20 -b 32 -s SnoutNet-V.pth -p SnoutNet-V_plot.png -t 1 --backbone vgg16
 pretrained model non augmented
 
-python Train.py -e 50 -b 64 -s aug_SnoutNet-V.pth -p aug_SnoutNet-V_plot.png -a 1 -t 1 --backbone vgg16
+python Train.py -e 20 -b 32 -s aug_SnoutNet-V.pth -p aug_SnoutNet-V_plot.png -a 1 -t 1 --backbone vgg16
 pretrained model augmented - horizontal flip + rotation + colour jitter
 
 python Test.py -c SnoutNet-V.pth -t 1 --backbone vgg16
