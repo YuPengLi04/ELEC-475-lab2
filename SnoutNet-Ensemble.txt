@@ -1,1 +1,11 @@
-python Test.py --ensemble "snoutnet:snoutnet_best.pth,alexnet:alexA.pth" --ens-weights auto --viz --viz-count 5 --viz-dir ./viz_out
+python Test.py --ensemble "snoutnet:SnoutNet.pth,alexnet:SnoutNet-A.pth,vgg16:SnoutNet-V.pth"
+testing
+
+python Test.py --ensemble "snoutnet:aug_SnoutNet.pth,alexnet:aug_SnoutNet-A.pth,vgg16:aug_SnoutNet-V.pth"
+aug testing
+
+python Test.py --ensemble "snoutnet:SnoutNet.pth,alexnet:SnoutNet-A.pth,vgg16:SnoutNet-V.pth" --ens-weights auto --viz --viz-count 5 --viz-dir ./viz_out
+visualize
+
+python Test.py --ensemble "snoutnet:aug_SnoutNet.pth,alexnet:aug_SnoutNet-A.pth,vgg16:aug_SnoutNet-V.pth" --ens-weights auto --viz --viz-count 5 --viz-dir ./viz_out
+aug visualize
