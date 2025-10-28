@@ -1,19 +1,19 @@
-python train.py -e 50 -b 64 -s SnoutNet-A.pth -p SnoutNet-A_plot.png -t 1 --backbone alexnet
+python Train.py -e 20 -b 32 -s SnoutNet-A.pth -p SnoutNet-A_plot.png -t 1 --backbone alexnet
 pretrained model non augmented
 
-python train.py -e 50 -b 64 -s aug_SnoutNet-A.pth -p aug_SnoutNet-A_plot.png -a 1 -t 1 --backbone alexnet
+python Train.py -e 20 -b 32 -s aug_SnoutNet-A.pth -p aug_SnoutNet-A_plot.png -a 1 -t 1 --backbone alexnet
 pretrained model augmented - horizontal flip + rotation + colour jitter
 
 
-python test.py -c SnoutNet-A.pth -t 1 --backbone alexnet
+python Test.py -c SnoutNet-A.pth -t 1 --backbone alexnet
 non augmented model test
 
-python test.py -c aug_SnoutNet-A.pth -t 1 --backbone alexnet
+python Test.py -c aug_SnoutNet-A.pth -t 1 --backbone alexnet
 augmented model test
 
 
-python test.py -c SnoutNet-A.pth -t 1 --backbone alexnet --viz --viz-count 6 --viz-dir viz
+python Test.py -c SnoutNet-A.pth -t 1 --backbone alexnet --viz --viz-count 6 --viz-dir viz
 non augmented model evaluation + 6 visualizations saved in ./viz
 
-python test.py -c aug_SnoutNet-A.pth -t 1 --backbone alexnet --viz --viz-count 6 --viz-dir viz
+python Test.py -c aug_SnoutNet-A.pth -t 1 --backbone alexnet --viz --viz-count 6 --viz-dir viz
 augmented model evaluation + 6 visualizations saved in ./viz
